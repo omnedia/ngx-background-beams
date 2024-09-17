@@ -39,7 +39,6 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
 
   private animationFrameId?: number;
   private observer?: IntersectionObserver;
-  private isAnimating = false;
   private inViewport = false;
 
   constructor(
@@ -113,18 +112,17 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
 
   initializeIntersectionObserver() {
     let observerTimeout: any;
-    this.observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        clearTimeout(observerTimeout);
-        observerTimeout = setTimeout(() => {
-          if (entry.isIntersecting && !this.isAnimating) {
-            this.inViewport = true;
-            this.startAnimations();
-          } else {
-            this.inViewport = false;
-          }
-        }, 100);
-      });
+    this.observer = new IntersectionObserver(([entry]) => {
+      clearTimeout(observerTimeout);
+      observerTimeout = setTimeout(() => {
+        if (entry.isIntersecting) {
+          this.inViewport = true;
+          this.startAnimations();
+        } else {
+          this.inViewport = false;
+          this.generatePaths();
+        }
+      }, 100);
     });
 
     // Observe the component
@@ -138,8 +136,6 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
   }
 
   startAnimations(): void {
-    this.isAnimating = true;
-
     this.paths.forEach((_, index) => {
       const delay = this.delays[index] * 1000;
       const duration = this.durations[index] * 1000;
