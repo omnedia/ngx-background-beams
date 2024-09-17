@@ -37,6 +37,7 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
   delays: number[] = [];
   durations: number[] = [];
 
+  private animationFrameId?: number;
   private observer?: IntersectionObserver;
   private isAnimating = false;
   private inViewport = false;
@@ -130,6 +131,10 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
     if (this.observer && this.componentRef.nativeElement) {
       this.observer.observe(this.componentRef.nativeElement);
     }
+
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
   }
 
   startAnimations(): void {
@@ -165,13 +170,13 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
       this.updateGradientAttributes(index);
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        this.animationFrameId = requestAnimationFrame(animate);
       } else {
         this.restartAnimation(index, duration);
       }
     };
 
-    requestAnimationFrame(animate);
+    this.animationFrameId = requestAnimationFrame(animate);
   }
 
   updateGradientAttributes(index: number): void {
