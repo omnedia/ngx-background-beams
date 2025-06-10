@@ -17,39 +17,39 @@
         ></path>
 
         <!-- Dynamic motion path generation with Angular -->
-        <ng-container *ngFor="let path of paths; let i = index">
+        @for (path of paths(); track $index) {
           <path
             [attr.d]="path"
             [attr.stroke]="pathColor"
-            stroke-opacity="0.4"
+            stroke-opacity="1"
             stroke-width="0.5"
           ></path>
 
           <path
             [attr.d]="path"
-            [attr.stroke]="'url(#linearGradient-' + i + ')'"
-            stroke-opacity="0.4"
+            [attr.stroke]="'url(#linearGradient-' + $index + ')'"
+            stroke-opacity="1"
             stroke-width="0.5"
-            [attr.id]="'path-' + i"
+            [attr.id]="'path-' + $index"
           ></path>
-        </ng-container>
+        }
 
         <!-- Definitions for gradients -->
         <defs>
-          <ng-container *ngFor="let path of paths; let i = index">
+          @for (path of paths(); track $index) {
             <linearGradient
-              [attr.id]="'linearGradient-' + i"
-              [attr.x1]="x1[i]"
-              [attr.x2]="x2[i]"
-              [attr.y1]="y1[i]"
-              [attr.y2]="y2[i]"
+              [attr.id]="'linearGradient-' + $index"
+              [attr.x1]="x1()[$index]"
+              [attr.x2]="x2()[$index]"
+              [attr.y1]="y1()[$index]"
+              [attr.y2]="y2()[$index]"
             >
-              <stop [attr.stop-color]="gradientColors[0]" stop-opacity="0"></stop>
-              <stop [attr.stop-color]="gradientColors[0]"></stop>
-              <stop offset="32.5%" [attr.stop-color]="gradientColors[1]"></stop>
-              <stop offset="100%" [attr.stop-color]="gradientColors[2]" stop-opacity="0"></stop>
+              <stop [attr.stop-color]="gradientColors()[0]" stop-opacity="0"></stop>
+              <stop [attr.stop-color]="gradientColors()[0]"></stop>
+              <stop offset="32.5%" [attr.stop-color]="gradientColors()[1]"></stop>
+              <stop offset="100%" [attr.stop-color]="gradientColors()[2]" stop-opacity="0"></stop>
             </linearGradient>
-          </ng-container>
+          }
 
           <!-- Radial Gradient -->
           <radialGradient

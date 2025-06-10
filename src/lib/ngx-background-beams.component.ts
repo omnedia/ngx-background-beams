@@ -1,4 +1,14 @@
-import {AfterViewInit, Component, ElementRef, Inject, Input, OnDestroy, PLATFORM_ID, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Inject,
+  Input,
+  OnDestroy,
+  PLATFORM_ID, signal,
+  ViewChild, WritableSignal
+} from '@angular/core';
 import {CommonModule, isPlatformBrowser} from "@angular/common";
 
 @Component({
@@ -7,6 +17,7 @@ import {CommonModule, isPlatformBrowser} from "@angular/common";
   imports: [CommonModule],
   templateUrl: "./ngx-background-beams.component.html",
   styleUrl: "./ngx-background-beams.component.scss",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
   @ViewChild('OmBackgroundBeams') componentRef!: ElementRef<HTMLElement>;
@@ -17,29 +28,26 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
       throw new Error('om-background-beams: gradient colors need to be exactly 3 values.');
     }
 
-    this.gradientColors = colors;
+    this.gradientColors.set(colors);
   }
 
-  gradientColors: string[] = ['#18CCFC', '#6344F5', '#AE48FF'];
-
   @Input()
-  pathColor: string = 'rgba(255, 255, 255, 0.08)';
+  pathColor: string = '#00000025';
 
   @Input() pathQuantity: number = 50;
 
-  paths: string[] = [];
-
-  x1: string[] = [];
-  x2: string[] = [];
-  y1: string[] = [];
-  y2: string[] = [];
-
-  delays: number[] = [];
-  durations: number[] = [];
+  readonly gradientColors: WritableSignal<string[]> = signal(['#18CCFC', '#6344F5', '#AE48FF']);
+  readonly paths: WritableSignal<string[]> = signal([]);
+  readonly x1: WritableSignal<string[]> = signal([]);
+  readonly x2: WritableSignal<string[]> = signal([]);
+  readonly y1: WritableSignal<string[]> = signal([]);
+  readonly y2: WritableSignal<string[]> = signal([]);
+  readonly delays: WritableSignal<number[]> = signal([]);
+  readonly durations: WritableSignal<number[]> = signal([]);
+  readonly inViewport: WritableSignal<boolean> = signal(false);
 
   private animationFrameId?: number;
   private observer?: IntersectionObserver;
-  private inViewport = false;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: object
@@ -60,13 +68,13 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
   }
 
   generatePaths(): void {
-    this.paths = [];
-    this.x1 = [];
-    this.x2 = [];
-    this.y1 = [];
-    this.y2 = [];
-    this.delays = [];
-    this.durations = [];
+    this.paths.set([]);
+    this.x1.set([]);
+    this.x2.set([]);
+    this.y1.set([]);
+    this.y2.set([]);
+    this.delays.set([]);
+    this.durations.set([]);
 
     const firstPath = {
       mX1: -380, mY1: -189, cX1: -380, cY1: -189, cX2: -312, cY2: 216,
@@ -77,6 +85,14 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
       mX1: -37, mY1: -581, cX1: -37, cY1: -581, cX2: 31, cY2: -176,
       cX3: 495, cY3: -49, cX4: 959, cY4: 78, cX5: 1027, cY5: 483
     };
+
+    const paths: string[] = [];
+    const x1: string[] = [];
+    const x2: string[] = [];
+    const y1: string[] = [];
+    const y2: string[] = [];
+    const delays: number[] = [];
+    const durations: number[] = [];
 
     for (let i = 0; i < this.pathQuantity; i++) {
       const t = i / (this.pathQuantity - 1);
@@ -98,16 +114,24 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
         `C${cX1} ${cY1} ${cX2} ${cY2} ${cX3} ${cY3}` +
         `C${cX4} ${cY4} ${cX5} ${cY5} ${cX5} ${cY5}`;
 
-      this.paths.push(path);
+      paths.push(path);
 
-      this.x1.push('0%');
-      this.x2.push('0%');
-      this.y1.push('0%');
-      this.y2.push('0%');
+      x1.push('0%');
+      x2.push('0%');
+      y1.push('0%');
+      y2.push('0%');
 
-      this.delays.push(Math.random() * 10);
-      this.durations.push(Math.random() * 10 + 10);
+      delays.push(Math.random() * 10);
+      durations.push(Math.random() * 10 + 10);
     }
+
+    this.paths.set(paths);
+    this.x1.set(x1);
+    this.x2.set(x2);
+    this.y1.set(y1);
+    this.y2.set(y2);
+    this.delays.set(delays);
+    this.durations.set(durations);
   }
 
   initializeIntersectionObserver() {
@@ -116,10 +140,10 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
       clearTimeout(observerTimeout);
       observerTimeout = setTimeout(() => {
         if (entry.isIntersecting) {
-          this.inViewport = true;
+          this.inViewport.set(true);
           this.startAnimations();
         } else {
-          this.inViewport = false;
+          this.inViewport.set(false);
           this.generatePaths();
         }
       }, 100);
@@ -136,9 +160,9 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
   }
 
   startAnimations(): void {
-    this.paths.forEach((_, index) => {
-      const delay = this.delays[index] * 1000;
-      const duration = this.durations[index] * 1000;
+    this.paths().forEach((_, index) => {
+      const delay = this.delays()[index] * 1000;
+      const duration = this.durations()[index] * 1000;
 
       setTimeout(() => {
         this.animateGradient(index, duration);
@@ -151,17 +175,17 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
     const randomY2Value = 93 + Math.random() * 8;
 
     const animate = (currentTime: number) => {
-      if (!this.inViewport) {
+      if (!this.inViewport()) {
         return;
       }
 
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      this.x1[index] = `${progress * 100}%`;
-      this.x2[index] = `${progress * 95}%`;
-      this.y1[index] = `${progress * 100}%`;
-      this.y2[index] = `${progress * randomY2Value}%`;
+      this.x1.update(a => (a[index] = `${progress*100}%`, a));
+      this.x2.update(a => (a[index] = `${progress*95}%`, a));
+      this.y1.update(a => (a[index] = `${progress*100}%`, a));
+      this.y2.update(a => (a[index] = `${progress*randomY2Value}%`, a));
 
       this.updateGradientAttributes(index);
 
@@ -178,19 +202,19 @@ export class NgxBackgroundBeamsComponent implements AfterViewInit, OnDestroy {
   updateGradientAttributes(index: number): void {
     const gradientElement = document.getElementById(`linearGradient-${index}`);
     if (gradientElement) {
-      gradientElement.setAttribute('x1', this.x1[index]);
-      gradientElement.setAttribute('x2', this.x2[index]);
-      gradientElement.setAttribute('y1', this.y1[index]);
-      gradientElement.setAttribute('y2', this.y2[index]);
+      gradientElement.setAttribute('x1', this.x1()[index]);
+      gradientElement.setAttribute('x2', this.x2()[index]);
+      gradientElement.setAttribute('y1', this.y1()[index]);
+      gradientElement.setAttribute('y2', this.y2()[index]);
     }
   }
 
   restartAnimation(index: number, duration: number): void {
     setTimeout(() => {
-      this.x1[index] = '0%';
-      this.x2[index] = '0%';
-      this.y1[index] = '0%';
-      this.y2[index] = '0%';
+      this.x1.update(a => (a[index] = `0%`, a));
+      this.x2.update(a => (a[index] = `0%`, a));
+      this.y1.update(a => (a[index] = `0%`, a));
+      this.y2.update(a => (a[index] = `0%`, a));
 
       this.animateGradient(index, duration);
     }, Math.random() * 10000);
